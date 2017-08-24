@@ -16,4 +16,6 @@ Gem::Specification.new do |gem|
   gem.version       = Soup::Client::VERSION
 
   gem.add_dependency("faraday")
+  gem.add_dependency("http-cookie")
+  gem.add_dependency("nokogiri")
 end

@@ -1,56 +1,81 @@
-require 'cgi'
+require 'faraday'
+require 'nokogiri'
+require 'http-cookie'
 
 module Soup
   class Client
-    attr_accessor :login, :password, :domain, :agent, :session_id, :soup_user_id
+    attr_accessor :login, :password
 
     def initialize(login, password)
       @login    = login
       @password = password
-      @agent    = Soup::Agent.new
+      @jar      = HTTP::CookieJar.new
     end
 
-    def get_session_id(page)
-      cookie      = page.headers["set-cookie"]
-      cookie      = CGI::Cookie.parse(cookie)
-      @session_id = cookie["soup_session_id"].first
-      @soup_user_id = cookie["soup_user_id"].first
+    def faraday(url)
+      Faraday.new(url) do |b|
+        b.use Faraday::Request::UrlEncoded
+        b.use Faraday::Response::Logger
+        b.use Faraday::Adapter::NetHttp
+      end
     end
 
-    def redirect_session
-      agent.faraday("http://www.soup.io").get do |req|
-        req.url "/remote/generate"
-        req.params['referer']     = "http://www.soup.io/everyone"
-        req.params['host']        = "#{@login}.soup.io"
-        req.params['redirect_to'] = "/"
-        req.headers["Cookie"]     = "soup_session_id=#{@session_id}"
-      end.headers['location']
+    def handle_cookies(page)
+      @jar.parse(page.headers["set-cookie"], page.env.url)
+      return page
+    end
+
+    def get_token(url)
+      page = nil
+      loop do
+        agent = faraday url
+        page = handle_cookies(agent.get do |req|
+          req.headers["Cookie"] = HTTP::Cookie.cookie_value @jar.cookies(url)
+        end)
+        break unless page.status == 302
+        url = page.headers['location']
+      end
+
+      html = Nokogiri::HTML(page.body)
+      html.css("meta[name='csrf-token']")[0]['content']
+    end
+
+    def post(url, data)
+      agent = faraday url
+      handle_cookies(agent.post(url, data) do |req|
+        req.headers["Cookie"] = HTTP::Cookie.cookie_value @jar.cookies(url)
+      end)
     end
 
     def login
-      post = { login: @login, password: @password, commit: 'Log in' }
-      get_session_id(@agent.post('/login', post))
-      get_session_id(@agent.get(redirect_session))
+      token = get_token 'https://www.soup.io/login'
+
+      data = { auth: token, authenticity_token: token, login: @login, password: @password, commit: 'Log in' }
+      page = post 'https://www.soup.io/login', data
+      raise 'Login failed.' unless page.status >= 200 && page.status < 400
     end
 
     def get_default_request
+      token = get_token "http://#{@login}.soup.io/"
+
       {
+        'utf8' => '✓',
+        'authenticity_token' => token,
         'post[source]' => '',
         'post[body]' => '',
         'post[id]' => '',
         'post[parent_id]' => '',
         'post[original_id]' => '',
         'post[edited_after_repost]' => '',
+        'nsfw' => 'on',
         'redirect' => '',
         'commit' => 'Save'
       }
     end
 
     def post_submit(request)
-      agent = @agent.faraday("http://#{@login}.soup.io")
-      agent.post('/save', request) do |req|
-        req.headers["Cookie"] = "soup_session_id=#{session_id}"
-      end
+      page = post "http://#{@login}.soup.io/save", request
+      raise 'Post failed.' unless page.status >= 200 && page.status < 400
     end
 
     def new_link(url, title = '', description = '')
@@ -59,17 +84,17 @@ module Soup
       request['post[source]'] = url
       request['post[title]'] = title
       request['post[body]'] = description
-      
+
       post_submit(request)
     end
 
-    def new_image(url, description = '')
+    def new_image(url, source = '', description = '')
       request = get_default_request()
       request['post[type]'] = 'PostImage'
       request['post[url]'] = url
-      request['post[source]'] = url
+      request['post[source]'] = source
       request['post[body]'] = description
-      
+
       post_submit(request)
     end
 
@@ -78,7 +103,7 @@ module Soup
       request['post[type]'] = 'PostRegular'
       request['post[title]'] = title
       request['post[body]'] = text
-      
+
       post_submit(request)
     end
 
@@ -87,7 +112,7 @@ module Soup
       request['post[type]'] = 'PostQuote'
       request['post[body]'] = quote
       request['post[title]'] = source
-      
+
       post_submit(request)
     end
 
@@ -96,7 +121,7 @@ module Soup
       request['post[type]'] = 'PostVideo'
       request['post[embedcode_or_url]'] = youtube_url
       request['post[body]'] = description
-      
+
       post_submit(request)
     end
   end
