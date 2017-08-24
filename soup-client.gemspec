@@ -2,8 +2,8 @@
 require File.expand_path('../lib/soup-client/version', __FILE__)
 
 Gem::Specification.new do |gem|
-  gem.authors       = ["Piotr Niełacny"]
-  gem.email         = ["piotr.nielacny@gmail.com"]
+  gem.authors       = ["Matthias Schiffer"]
+  gem.email         = ["mschiffer@universe-factory.net"]
   gem.description   = %q{soup.io client}
   gem.summary       = %q{soup.io client}
   gem.homepage      = ""
