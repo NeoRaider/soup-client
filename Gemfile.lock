@@ -9,19 +9,19 @@ PATH
 GEM
   remote: https://rubygems.org/
   specs:
-    domain_name (0.5.20170404)
+    domain_name (0.5.20190701)
       unf (>= 0.0.5, < 1.0.0)
-    faraday (0.13.1)
+    faraday (0.17.0)
       multipart-post (>= 1.2, < 3)
     http-cookie (1.0.3)
       domain_name (~> 0.5)
-    mini_portile2 (2.2.0)
-    multipart-post (2.0.0)
-    nokogiri (1.8.0)
-      mini_portile2 (~> 2.2.0)
+    mini_portile2 (2.4.0)
+    multipart-post (2.1.1)
+    nokogiri (1.10.4)
+      mini_portile2 (~> 2.4.0)
     unf (0.1.4)
       unf_ext
-    unf_ext (0.0.7.4)
+    unf_ext (0.0.7.6)
 
 PLATFORMS
   ruby
@@ -30,4 +30,4 @@ DEPENDENCIES
   soup-client!
 
 BUNDLED WITH
-   1.15.1
+   2.0.2
