@@ -56,7 +56,7 @@ module Soup
     end
 
     def get_default_request
-      token = get_token "http://#{@login}.soup.io/"
+      token = get_token "https://#{@login}.soup.io/"
 
       {
         'utf8' => '✓',
@@ -74,7 +74,7 @@ module Soup
     end
 
     def post_submit(request)
-      page = post "http://#{@login}.soup.io/save", request
+      page = post "https://#{@login}.soup.io/save", request
       raise 'Post failed.' unless page.status >= 200 && page.status < 400
     end
 
