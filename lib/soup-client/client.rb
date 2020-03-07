@@ -1,6 +1,7 @@
 require 'faraday'
-require 'nokogiri'
 require 'http-cookie'
+require 'nokogiri'
+require 'uri'
 
 module Soup
   class Client
@@ -10,6 +11,14 @@ module Soup
       @login    = login
       @password = password
       @jar      = HTTP::CookieJar.new
+    end
+
+    def upgrade_url(url)
+      u = URI(url)
+      if u.scheme == 'http' and u.host.end_with? '.soup.io' then
+        u.scheme = 'https'
+      end
+      u.to_s
     end
 
     def faraday(url)
@@ -32,7 +41,7 @@ module Soup
           req.headers["Cookie"] = HTTP::Cookie.cookie_value @jar.cookies(url)
         end)
         break unless page.status == 302
-        url = page.headers['location']
+        url = upgrade_url(page.headers['location'])
       end
 
       html = Nokogiri::HTML(page.body)
