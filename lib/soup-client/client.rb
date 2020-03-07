@@ -13,10 +13,9 @@ module Soup
     end
 
     def faraday(url)
-      Faraday.new(url) do |b|
-        b.use Faraday::Request::UrlEncoded
-        b.use Faraday::Response::Logger
-        b.use Faraday::Adapter::NetHttp
+      Faraday.new(url) do |conn|
+        conn.request :url_encoded
+        conn.response :logger
       end
     end
 
